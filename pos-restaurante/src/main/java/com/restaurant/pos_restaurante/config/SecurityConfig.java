@@ -39,6 +39,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/mesero/**").hasRole("MESERO")
                 .requestMatchers("/ws/**").permitAll()
                 .anyRequest().authenticated()
+                .requestMatchers("/api/predicciones/**").permitAll()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
