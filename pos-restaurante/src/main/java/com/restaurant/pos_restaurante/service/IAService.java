@@ -4,6 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.Map;
@@ -32,8 +33,10 @@ public class IAService {
             return restTemplate.getForObject(url, Map.class);
         } catch (ResourceAccessException e) {
             return errorRespuesta("El servicio de IA no está disponible. Verifica que esté corriendo en el puerto 8000.");
-        } catch (HttpClientErrorException e) {
+        } catch (HttpStatusCodeException e) {
             return errorRespuesta("Error al predecir ventas: " + e.getResponseBodyAsString());
+        } catch (Exception e) {
+            return errorRespuesta("Error inesperado: " + e.getMessage());
         }
     }
 
@@ -47,8 +50,10 @@ public class IAService {
             return restTemplate.getForObject(url, Map.class);
         } catch (ResourceAccessException e) {
             return errorRespuesta("El servicio de IA no está disponible. Verifica que esté corriendo en el puerto 8000.");
-        } catch (HttpClientErrorException e) {
+        } catch (HttpStatusCodeException e) {
             return errorRespuesta("Error al predecir inventario: " + e.getResponseBodyAsString());
+        } catch (Exception e) {
+            return errorRespuesta("Error inesperado: " + e.getMessage());
         }
     }
 
@@ -61,6 +66,10 @@ public class IAService {
             return restTemplate.getForObject(url, Map.class);
         } catch (ResourceAccessException e) {
             return errorRespuesta("El servicio de IA no está disponible.");
+        } catch (HttpStatusCodeException e) {
+            return errorRespuesta("Error al listar productos: " + e.getResponseBodyAsString());
+        } catch (Exception e) {
+            return errorRespuesta("Error inesperado: " + e.getMessage());
         }
     }
 
@@ -73,6 +82,10 @@ public class IAService {
             return restTemplate.getForObject(url, Map.class);
         } catch (ResourceAccessException e) {
             return errorRespuesta("El servicio de IA no está disponible.");
+        } catch (HttpStatusCodeException e) {
+            return errorRespuesta("Error al listar insumos: " + e.getResponseBodyAsString());
+        } catch (Exception e) {
+            return errorRespuesta("Error inesperado: " + e.getMessage());
         }
     }
 

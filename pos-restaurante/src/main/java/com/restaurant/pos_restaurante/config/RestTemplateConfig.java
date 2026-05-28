@@ -1,4 +1,4 @@
-package com.restaurant.pos_restaurante.config;
+/*package com.restaurant.pos_restaurante.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,4 +11,4 @@ public class RestTemplateConfig {
     public RestTemplate restTemplate() {
         return new RestTemplate();
     }
-}
+}*/
