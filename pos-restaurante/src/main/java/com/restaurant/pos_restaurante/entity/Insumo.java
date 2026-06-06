@@ -48,4 +48,8 @@ public class Insumo {
 
     @Enumerated(EnumType.STRING)
     private EstadoInsumo estado = EstadoInsumo.NORMAL;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "proveedor_id")
+private Proveedor proveedor;
 }

@@ -28,6 +28,7 @@ public class InventarioService {
     private final InsumoRepository insumoRepository;
     private final MovimientoInventarioRepository movimientoRepository;
     private final RestauranteRepository restauranteRepository;
+    private final ProveedorRepository proveedorRepository;
 
     public List<InsumoDTO> getInsumos(UUID restauranteId) {
         return insumoRepository.findByRestauranteId(restauranteId)
@@ -53,6 +54,15 @@ public class InventarioService {
         insumo.setStockMinimo(request.getStockMinimo());
         insumo.setStockCritico(request.getStockCritico());
         insumo.setUnidad(request.getUnidad());
+        if (request.getProveedorId() != null) {
+
+    Proveedor proveedor = proveedorRepository
+        .findById(request.getProveedorId())
+        .orElseThrow(() ->
+            new RuntimeException("Proveedor no encontrado"));
+
+    insumo.setProveedor(proveedor);
+}
         insumo.setEstado(calcularEstado(request.getStockActual(), request.getStockMinimo(), request.getStockCritico()));
 
         return toDTO(insumoRepository.save(insumo));
@@ -68,6 +78,15 @@ public class InventarioService {
         insumo.setStockMinimo(request.getStockMinimo());
         insumo.setStockCritico(request.getStockCritico());
         insumo.setUnidad(request.getUnidad());
+        if (request.getProveedorId() != null) {
+
+    Proveedor proveedor = proveedorRepository
+        .findById(request.getProveedorId())
+        .orElseThrow(() ->
+            new RuntimeException("Proveedor no encontrado"));
+
+    insumo.setProveedor(proveedor);
+}
         insumo.setEstado(calcularEstado(request.getStockActual(), request.getStockMinimo(), request.getStockCritico()));
 
         return toDTO(insumoRepository.save(insumo));
@@ -130,6 +149,16 @@ public class InventarioService {
         dto.setStockCritico(i.getStockCritico());
         dto.setUnidad(i.getUnidad());
         dto.setEstado(i.getEstado());
+        if (i.getProveedor() != null) {
+
+    dto.setProveedorId(
+        i.getProveedor().getId()
+    );
+
+    dto.setProveedorNombre(
+        i.getProveedor().getNombre()
+    );
+}
         return dto;
     }
 }

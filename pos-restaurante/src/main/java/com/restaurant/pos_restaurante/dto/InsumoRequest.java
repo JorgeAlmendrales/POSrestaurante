@@ -8,6 +8,7 @@ import lombok.Data;
 
 @Data
 public class InsumoRequest {
+
     @NotBlank
     private String nombre;
 
@@ -22,4 +23,6 @@ public class InsumoRequest {
 
     @NotBlank
     private String unidad;
+
+    private UUID proveedorId;
 }

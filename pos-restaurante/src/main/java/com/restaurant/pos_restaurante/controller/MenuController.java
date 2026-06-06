@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PatchMapping;
 
 import com.restaurant.pos_restaurante.dto.CategoriaDTO;
 import com.restaurant.pos_restaurante.dto.ProductoDTO;
@@ -86,6 +87,15 @@ public class MenuController {
             @Valid @RequestBody RecetaIngredienteDTO dto) {
         return ResponseEntity.ok(menuService.agregarIngrediente(id, dto));
     }
+    @PatchMapping("/productos/{id}/disponibilidad")
+public ResponseEntity<Void> cambiarDisponibilidad(
+        @PathVariable UUID id,
+        @RequestParam boolean disponible) {
+
+    menuService.cambiarDisponibilidad(id, disponible);
+
+    return ResponseEntity.ok().build();
+}
 
     @DeleteMapping("/receta/{ingredienteId}")
     public ResponseEntity<Void> eliminarIngrediente(@PathVariable UUID ingredienteId) {

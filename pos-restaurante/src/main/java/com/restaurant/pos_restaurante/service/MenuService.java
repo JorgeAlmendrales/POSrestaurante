@@ -59,42 +59,109 @@ public class MenuService {
     }
 
     @Transactional
-    public ProductoDTO crearProducto(UUID restauranteId, ProductoRequest request) {
-        Restaurante restaurante = restauranteRepository.findById(restauranteId)
-            .orElseThrow(() -> new RuntimeException("Restaurante no encontrado"));
+public ProductoDTO crearProducto(UUID restauranteId, ProductoRequest request) {
 
-        Producto producto = new Producto();
-        producto.setRestaurante(restaurante);
-        producto.setNombre(request.getNombre());
-        producto.setDescripcion(request.getDescripcion());
-        producto.setPrecio(request.getPrecio());
-        producto.setDisponible(request.isDisponible());
+    Restaurante restaurante = restauranteRepository.findById(restauranteId)
+        .orElseThrow(() -> new RuntimeException("Restaurante no encontrado"));
 
-        if (request.getCategoriaId() != null) {
-            categoriaRepository.findById(request.getCategoriaId())
-                .ifPresent(producto::setCategoria);
-        }
+    Producto producto = new Producto();
 
-        return toProductoDTO(productoRepository.save(producto));
+    producto.setRestaurante(restaurante);
+    producto.setNombre(request.getNombre());
+    producto.setDescripcion(request.getDescripcion());
+    producto.setPrecio(request.getPrecio());
+    producto.setDisponible(request.isDisponible());
+    producto.setImagenUrl(request.getImagenUrl());
+
+    if (request.getCategoriaId() != null) {
+        categoriaRepository.findById(request.getCategoriaId())
+            .ifPresent(producto::setCategoria);
     }
+
+    producto = productoRepository.save(producto);
+
+    if (request.getIngredientes() != null) {
+
+        for (RecetaIngredienteDTO dto : request.getIngredientes()) {
+
+            Insumo insumo = insumoRepository.findById(dto.getInsumoId())
+                .orElseThrow(() -> new RuntimeException(
+                    "Insumo no encontrado"
+                ));
+
+            RecetaIngrediente ingrediente =
+                new RecetaIngrediente();
+
+            ingrediente.setProducto(producto);
+            ingrediente.setInsumo(insumo);
+            ingrediente.setCantidad(dto.getCantidad());
+            ingrediente.setUnidad(dto.getUnidad());
+
+            recetaIngredienteRepository.save(ingrediente);
+        }
+    }
+
+    return toProductoDTO(producto);
+}
 
     @Transactional
-    public ProductoDTO actualizarProducto(UUID productoId, ProductoRequest request) {
-        Producto producto = productoRepository.findById(productoId)
+public ProductoDTO actualizarProducto(
+        UUID productoId,
+        ProductoRequest request) {
+
+    Producto producto = productoRepository.findById(productoId)
+        .orElseThrow(() ->
+            new RuntimeException("Producto no encontrado"));
+
+    producto.setNombre(request.getNombre());
+    producto.setDescripcion(request.getDescripcion());
+    producto.setPrecio(request.getPrecio());
+    producto.setDisponible(request.isDisponible());
+    producto.setImagenUrl(request.getImagenUrl());
+
+    if (request.getCategoriaId() != null) {
+        categoriaRepository.findById(request.getCategoriaId())
+            .ifPresent(producto::setCategoria);
+    }
+
+    producto = productoRepository.save(producto);
+
+    recetaIngredienteRepository.deleteByProductoId(
+        producto.getId()
+    );
+
+    if (request.getIngredientes() != null) {
+
+        for (RecetaIngredienteDTO dto : request.getIngredientes()) {
+
+            Insumo insumo = insumoRepository.findById(dto.getInsumoId())
+                .orElseThrow(() ->
+                    new RuntimeException("Insumo no encontrado"));
+
+            RecetaIngrediente ingrediente =
+                new RecetaIngrediente();
+
+            ingrediente.setProducto(producto);
+            ingrediente.setInsumo(insumo);
+            ingrediente.setCantidad(dto.getCantidad());
+            ingrediente.setUnidad(dto.getUnidad());
+
+            recetaIngredienteRepository.save(ingrediente);
+        }
+    }
+
+    return toProductoDTO(producto);
+}
+@Transactional
+public void cambiarDisponibilidad(UUID productoId, boolean disponible) {
+
+    Producto producto = productoRepository.findById(productoId)
             .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
 
-        producto.setNombre(request.getNombre());
-        producto.setDescripcion(request.getDescripcion());
-        producto.setPrecio(request.getPrecio());
-        producto.setDisponible(request.isDisponible());
+    producto.setDisponible(disponible);
 
-        if (request.getCategoriaId() != null) {
-            categoriaRepository.findById(request.getCategoriaId())
-                .ifPresent(producto::setCategoria);
-        }
-
-        return toProductoDTO(productoRepository.save(producto));
-    }
+    productoRepository.save(producto);
+}
 
     @Transactional
     public void eliminarProducto(UUID productoId) {
@@ -137,19 +204,31 @@ public class MenuService {
     }
 
     private ProductoDTO toProductoDTO(Producto p) {
-        ProductoDTO dto = new ProductoDTO();
-        dto.setId(p.getId());
-        dto.setNombre(p.getNombre());
-        dto.setDescripcion(p.getDescripcion());
-        dto.setPrecio(p.getPrecio());
-        dto.setImagenUrl(p.getImagenUrl());
-        dto.setDisponible(p.isDisponible());
-        if (p.getCategoria() != null) {
-            dto.setCategoriaId(p.getCategoria().getId());
-            dto.setCategoriaNombre(p.getCategoria().getNombre());
-        }
-        return dto;
+
+    ProductoDTO dto = new ProductoDTO();
+
+    dto.setId(p.getId());
+    dto.setNombre(p.getNombre());
+    dto.setDescripcion(p.getDescripcion());
+    dto.setPrecio(p.getPrecio());
+    dto.setImagenUrl(p.getImagenUrl());
+    dto.setDisponible(p.isDisponible());
+
+    if (p.getCategoria() != null) {
+        dto.setCategoriaId(p.getCategoria().getId());
+        dto.setCategoriaNombre(p.getCategoria().getNombre());
     }
+
+    dto.setIngredientes(
+        recetaIngredienteRepository
+            .findByProductoId(p.getId())
+            .stream()
+            .map(this::toRecetaDTO)
+            .collect(Collectors.toList())
+    );
+
+    return dto;
+}
 
     private RecetaIngredienteDTO toRecetaDTO(RecetaIngrediente r) {
         RecetaIngredienteDTO dto = new RecetaIngredienteDTO();

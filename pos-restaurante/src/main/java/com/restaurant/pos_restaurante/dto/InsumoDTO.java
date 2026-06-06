@@ -9,11 +9,18 @@ import lombok.Data;
 
 @Data
 public class InsumoDTO {
+
     private UUID id;
     private String nombre;
+
     private BigDecimal stockActual;
     private BigDecimal stockMinimo;
     private BigDecimal stockCritico;
+
     private String unidad;
+
     private EstadoInsumo estado;
+
+    private UUID proveedorId;
+    private String proveedorNombre;
 }

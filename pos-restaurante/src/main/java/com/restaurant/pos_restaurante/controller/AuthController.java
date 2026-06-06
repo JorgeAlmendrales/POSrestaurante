@@ -36,7 +36,17 @@ public class AuthController {
     }
 
     @GetMapping("/perfil")
-    public ResponseEntity<RestauranteDTO> getPerfil(@AuthenticationPrincipal Usuario usuario) {
-        return ResponseEntity.ok(authService.getPerfil(usuario.getEmail()));
+public ResponseEntity<?> getPerfil(
+        @AuthenticationPrincipal Usuario usuario) {
+
+    System.out.println("USUARIO:");
+    System.out.println(usuario);
+
+    if (usuario == null) {
+        return ResponseEntity.badRequest().body("Usuario null");
     }
+
+    return ResponseEntity.ok(
+        authService.getPerfil(usuario.getEmail()));
+}
 }

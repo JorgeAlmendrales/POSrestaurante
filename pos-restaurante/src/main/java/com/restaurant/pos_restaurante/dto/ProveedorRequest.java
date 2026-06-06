@@ -10,5 +10,6 @@ public class ProveedorRequest {
     private String contacto;
     private String telefono;
     private String email;
+    private boolean activo = true;
 }
 

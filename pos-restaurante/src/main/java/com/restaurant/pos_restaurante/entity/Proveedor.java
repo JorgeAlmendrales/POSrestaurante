@@ -32,4 +32,5 @@ public class Proveedor {
     private String contacto;
     private String telefono;
     private String email;
+    private boolean activo = true;
 }

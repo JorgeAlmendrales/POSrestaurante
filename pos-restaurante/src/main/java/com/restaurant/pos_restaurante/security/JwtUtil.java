@@ -14,7 +14,8 @@ import io.jsonwebtoken.security.Keys;
 public class JwtUtil {
 
     private static final String SECRET = "pos-restaurante-secret-key-2024-muy-segura-larga";
-    private static final long EXPIRATION = 86400000; // 24 horas
+    private static final long EXPIRATION =
+    1000L * 60 * 60 * 24 * 30; // 30 días
 
     private final Key key = Keys.hmacShaKeyFor(SECRET.getBytes());
 
@@ -42,13 +43,19 @@ public class JwtUtil {
     }
 
     public boolean isTokenValid(String token) {
-        try {
-            getClaims(token);
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
-        }
+    try {
+        getClaims(token);
+        return true;
+    } catch (JwtException | IllegalArgumentException e) {
+
+        System.out.println("=================================");
+        System.out.println("ERROR VALIDANDO TOKEN");
+        e.printStackTrace();
+        System.out.println("=================================");
+
+        return false;
     }
+}
 
     private Claims getClaims(String token) {
         return Jwts.parser()
