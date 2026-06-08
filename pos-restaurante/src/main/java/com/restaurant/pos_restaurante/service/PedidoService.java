@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import com.restaurant.pos_restaurante.enums.EstadoPedido;
+import com.restaurant.pos_restaurante.enums.EstadoMesa;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class PedidoService {
     private final RecetaIngredienteRepository recetaIngredienteRepository;
     private final InventarioService inventarioService;
     private final SimpMessagingTemplate messagingTemplate;
+
 
     public List<PedidoDTO> getPedidos(UUID restauranteId) {
         return pedidoRepository.findByRestauranteIdOrderByCreatedAtDesc(restauranteId)
@@ -54,8 +57,21 @@ public class PedidoService {
         pedido.setNumero("PED-" + System.currentTimeMillis());
 
         if (request.getMesaId() != null) {
-            mesaRepository.findById(request.getMesaId()).ifPresent(pedido::setMesa);
-        }
+
+    Mesa mesa = mesaRepository.findById(request.getMesaId())
+        .orElseThrow(() ->
+            new RuntimeException("Mesa no encontrada"));
+
+    if (mesa.getEstado() != EstadoMesa.DISPONIBLE) {
+        throw new RuntimeException(
+            "La mesa no está disponible"
+        );
+    }
+
+    mesa.setEstado(EstadoMesa.OCUPADA);
+
+    pedido.setMesa(mesa);
+}
 
         pedido = pedidoRepository.save(pedido);
 
@@ -95,6 +111,16 @@ public class PedidoService {
             .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
 
         pedido.setEstado(nuevoEstado);
+        if (
+    (nuevoEstado == EstadoPedido.ENTREGADO ||
+     nuevoEstado == EstadoPedido.CANCELADO)
+     &&
+     pedido.getMesa() != null
+) {
+    pedido.getMesa().setEstado(
+        EstadoMesa.DISPONIBLE
+    );
+}
 
         // Al confirmar (EN_PREPARACION) → descontar inventario automáticamente
         if (nuevoEstado == EstadoPedido.EN_PREPARACION) {

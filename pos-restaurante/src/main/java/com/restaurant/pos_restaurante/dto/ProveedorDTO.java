@@ -11,5 +11,5 @@ public class ProveedorDTO {
     private String contacto;
     private String telefono;
     private String email;
-    private boolean activo;
+    //private boolean activo;
 }

@@ -20,6 +20,8 @@ import com.restaurant.pos_restaurante.repository.MovimientoInventarioRepository;
 import com.restaurant.pos_restaurante.repository.RestauranteRepository;
 
 import lombok.RequiredArgsConstructor;
+import com.restaurant.pos_restaurante.repository.ProveedorRepository;
+import com.restaurant.pos_restaurante.entity.Proveedor;
 
 @Service
 @RequiredArgsConstructor
@@ -54,12 +56,15 @@ public class InventarioService {
         insumo.setStockMinimo(request.getStockMinimo());
         insumo.setStockCritico(request.getStockCritico());
         insumo.setUnidad(request.getUnidad());
+        System.out.println("PROVEEDOR REQUEST: " + request.getProveedorId());
         if (request.getProveedorId() != null) {
 
     Proveedor proveedor = proveedorRepository
         .findById(request.getProveedorId())
         .orElseThrow(() ->
             new RuntimeException("Proveedor no encontrado"));
+
+        System.out.println("PROVEEDOR ENCONTRADO: " + proveedor.getNombre());
 
     insumo.setProveedor(proveedor);
 }
@@ -92,6 +97,11 @@ public class InventarioService {
         return toDTO(insumoRepository.save(insumo));
     }
 
+
+@Transactional
+public void eliminarInsumo(UUID id) {
+    insumoRepository.deleteById(id);
+}
     @Transactional
     public InsumoDTO ajustarStock(UUID insumoId, BigDecimal cantidad, String motivo) {
         Insumo insumo = insumoRepository.findById(insumoId)
