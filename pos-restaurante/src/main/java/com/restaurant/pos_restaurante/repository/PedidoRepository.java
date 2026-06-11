@@ -12,4 +12,8 @@ public interface PedidoRepository extends JpaRepository<Pedido, UUID> {
     List<Pedido> findByRestauranteIdOrderByCreatedAtDesc(UUID restauranteId);
     List<Pedido> findByRestauranteIdAndEstado(UUID restauranteId, EstadoPedido estado);
     List<Pedido> findByRestauranteIdAndEstadoNot(UUID restauranteId, EstadoPedido estado);
+    List<Pedido> findByRestauranteIdAndEstadoIn(
+    UUID restauranteId,
+    List<EstadoPedido> estados
+);
 }

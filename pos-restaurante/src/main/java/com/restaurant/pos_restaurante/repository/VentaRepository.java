@@ -12,6 +12,7 @@ import com.restaurant.pos_restaurante.entity.Venta;
 
 public interface VentaRepository extends JpaRepository<Venta, UUID> {
     List<Venta> findByRestauranteIdOrderByFechaDesc(UUID restauranteId);
+    boolean existsByPedidoId(UUID pedidoId);
 
     @Query("SELECT v FROM Venta v WHERE v.restaurante.id = :restauranteId AND v.fecha BETWEEN :inicio AND :fin")
     List<Venta> findByRestauranteIdAndFechaBetween(

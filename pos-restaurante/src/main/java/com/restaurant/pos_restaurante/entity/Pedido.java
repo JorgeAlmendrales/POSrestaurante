@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import com.restaurant.pos_restaurante.entity.Cliente;
+import com.restaurant.pos_restaurante.entity.Mesa;
 
 @Data
 @Entity
@@ -25,6 +27,10 @@ public class Pedido {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "cliente_id")
+private Cliente cliente;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "mesa_id")

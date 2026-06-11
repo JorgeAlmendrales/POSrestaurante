@@ -19,4 +19,9 @@ public class PedidoDTO {
     private String usuarioNombre;
     private List<PedidoItemDTO> items;
     private LocalDateTime createdAt;
+    private String clienteNombre;
+
+private String clienteTelefono;
+
+private String clienteDireccion;
 }

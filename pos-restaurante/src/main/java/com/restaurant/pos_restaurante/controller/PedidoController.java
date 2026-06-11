@@ -5,6 +5,7 @@ import com.restaurant.pos_restaurante.dto.PedidoRequest;
 import com.restaurant.pos_restaurante.entity.Usuario;
 import com.restaurant.pos_restaurante.enums.EstadoPedido;
 import com.restaurant.pos_restaurante.service.PedidoService;
+import com.restaurant.pos_restaurante.dto.UpdatePedidoRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,20 @@ public class PedidoController {
     public ResponseEntity<List<PedidoDTO>> getPedidosActivos(@AuthenticationPrincipal Usuario usuario) {
         return ResponseEntity.ok(pedidoService.getPedidosActivos(usuario.getRestaurante().getId()));
     }
+
+    @PutMapping("/{id}")
+public ResponseEntity<PedidoDTO> actualizarPedido(
+        @PathVariable UUID id,
+        @RequestBody UpdatePedidoRequest request
+) {
+
+    return ResponseEntity.ok(
+        pedidoService.actualizarPedido(
+            id,
+            request
+        )
+    );
+}
 
     @PostMapping
     public ResponseEntity<PedidoDTO> crearPedido(

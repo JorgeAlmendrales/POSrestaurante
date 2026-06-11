@@ -10,10 +10,19 @@ import lombok.Data;
 
 @Data
 public class PedidoRequest {
+
     @NotNull
     private TipoPedido tipo;
 
     private UUID mesaId;
+
+    private String clienteNombre;
+
+    private String clienteTelefono;
+
+    private String clienteDireccion;
+
+    private String observacionesGenerales;
 
     @NotNull
     private List<PedidoItemRequest> items;

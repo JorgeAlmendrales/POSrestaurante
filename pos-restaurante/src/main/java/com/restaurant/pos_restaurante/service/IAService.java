@@ -57,6 +57,35 @@ public class IAService {
         }
     }
 
+    public Map<String, Object> obtenerRecomendacionProducto(String productoId) {
+    try {
+
+        String url =
+            iaServiceUrl + "/api/recomendacion/" + productoId;
+
+        return restTemplate.getForObject(url, Map.class);
+
+    } catch (ResourceAccessException e) {
+
+        return errorRespuesta(
+            "El servicio de IA no está disponible."
+        );
+
+    } catch (HttpStatusCodeException e) {
+
+        return errorRespuesta(
+            "Error al obtener recomendación IA: "
+                + e.getResponseBodyAsString()
+        );
+
+    } catch (Exception e) {
+
+        return errorRespuesta(
+            "Error inesperado: " + e.getMessage()
+        );
+    }
+}
+
     /**
      * Lista todos los productos de un restaurante.
      */

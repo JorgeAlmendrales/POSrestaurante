@@ -1,5 +1,6 @@
 package com.restaurant.pos_restaurante.controller;
 
+import com.restaurant.pos_restaurante.dto.RecomendacionIADTO;
 import com.restaurant.pos_restaurante.dto.DashboardDTO;
 import com.restaurant.pos_restaurante.entity.Usuario;
 import com.restaurant.pos_restaurante.service.DashboardService;
@@ -19,4 +20,15 @@ public class DashboardController {
     public ResponseEntity<DashboardDTO> getDashboard(@AuthenticationPrincipal Usuario usuario) {
         return ResponseEntity.ok(dashboardService.getDashboard(usuario.getRestaurante().getId()));
     }
+
+    @GetMapping("/recomendacion-ia")
+public ResponseEntity<RecomendacionIADTO> getRecomendacionIA(
+        @AuthenticationPrincipal Usuario usuario) {
+
+    return ResponseEntity.ok(
+        dashboardService.getRecomendacionIA(
+            usuario.getRestaurante().getId()
+        )
+    );
+}
 }

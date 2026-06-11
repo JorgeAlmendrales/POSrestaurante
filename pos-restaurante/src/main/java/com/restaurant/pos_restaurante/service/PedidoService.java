@@ -15,6 +15,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import com.restaurant.pos_restaurante.enums.EstadoPedido;
 import com.restaurant.pos_restaurante.enums.EstadoMesa;
+import com.restaurant.pos_restaurante.enums.TipoPedido;
+import com.restaurant.pos_restaurante.repository.ClienteRepository;
+import com.restaurant.pos_restaurante.dto.UpdatePedidoRequest;
+import com.restaurant.pos_restaurante.enums.MetodoPago;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +32,8 @@ public class PedidoService {
     private final RecetaIngredienteRepository recetaIngredienteRepository;
     private final InventarioService inventarioService;
     private final SimpMessagingTemplate messagingTemplate;
-
+    private final ClienteRepository clienteRepository;
+    private final VentaRepository ventaRepository;
 
     public List<PedidoDTO> getPedidos(UUID restauranteId) {
         return pedidoRepository.findByRestauranteIdOrderByCreatedAtDesc(restauranteId)
@@ -36,9 +41,20 @@ public class PedidoService {
     }
 
     public List<PedidoDTO> getPedidosActivos(UUID restauranteId) {
-        return pedidoRepository.findByRestauranteIdAndEstadoNot(restauranteId, EstadoPedido.ENTREGADO)
-            .stream().map(this::toDTO).collect(Collectors.toList());
-    }
+
+    return pedidoRepository
+        .findByRestauranteIdAndEstadoIn(
+            restauranteId,
+            List.of(
+                EstadoPedido.NUEVO,
+                EstadoPedido.EN_PREPARACION,
+                EstadoPedido.LISTO
+            )
+        )
+        .stream()
+        .map(this::toDTO)
+        .collect(Collectors.toList());
+}
 
     @Transactional
     public PedidoDTO crearPedido(UUID restauranteId, UUID usuarioId, PedidoRequest request) {
@@ -93,6 +109,21 @@ public class PedidoService {
             total = total.add(producto.getPrecio().multiply(BigDecimal.valueOf(itemReq.getCantidad())));
         }
 
+        Cliente cliente = null;
+
+if (request.getTipo() != TipoPedido.MESA) {
+
+    cliente = new Cliente();
+
+    cliente.setNombre(request.getClienteNombre());
+    cliente.setTelefono(request.getClienteTelefono());
+    cliente.setDireccion(request.getClienteDireccion());
+
+    cliente = clienteRepository.save(cliente);
+
+    pedido.setCliente(cliente);
+}
+
         pedido.setTotal(total);
         pedido.setItems(items);
         pedidoRepository.save(pedido);
@@ -106,49 +137,195 @@ public class PedidoService {
     }
 
     @Transactional
-    public PedidoDTO cambiarEstado(UUID pedidoId, EstadoPedido nuevoEstado) {
-        Pedido pedido = pedidoRepository.findById(pedidoId)
-            .orElseThrow(() -> new RuntimeException("Pedido no encontrado"));
-
-        pedido.setEstado(nuevoEstado);
-        if (
-    (nuevoEstado == EstadoPedido.ENTREGADO ||
-     nuevoEstado == EstadoPedido.CANCELADO)
-     &&
-     pedido.getMesa() != null
+public PedidoDTO actualizarPedido(
+        UUID pedidoId,
+        UpdatePedidoRequest request
 ) {
-    pedido.getMesa().setEstado(
-        EstadoMesa.DISPONIBLE
+
+    Pedido pedido = pedidoRepository.findById(pedidoId)
+        .orElseThrow(() ->
+            new RuntimeException("Pedido no encontrado")
+        );
+
+    if (
+        // Solo se permiten cambios en pedidos NUEVOS, EN_PREPARACION o LISTOS
+        pedido.getEstado() != EstadoPedido.NUEVO && pedido.getEstado() != EstadoPedido.LISTO && pedido.getEstado() != EstadoPedido.EN_PREPARACION
+    ) {
+        throw new RuntimeException(
+            "Solo se pueden modificar pedidos en estado NUEVO"
+        );
+    }
+
+    pedidoItemRepository.deleteAll(
+        pedido.getItems()
     );
+
+    List<PedidoItem> nuevosItems = new ArrayList<>();
+
+    BigDecimal total = BigDecimal.ZERO;
+
+    for (PedidoItemRequest itemReq : request.getItems()) {
+
+        Producto producto =
+            productoRepository.findById(
+                itemReq.getProductoId()
+            )
+            .orElseThrow(() ->
+                new RuntimeException(
+                    "Producto no encontrado"
+                )
+            );
+
+        PedidoItem item = new PedidoItem();
+
+        item.setPedido(pedido);
+        item.setProducto(producto);
+        item.setCantidad(itemReq.getCantidad());
+        item.setPrecioUnitario(
+            producto.getPrecio()
+        );
+        item.setNotas(itemReq.getNotas());
+
+        nuevosItems.add(
+            pedidoItemRepository.save(item)
+        );
+
+        total = total.add(
+            producto.getPrecio()
+                .multiply(
+                    BigDecimal.valueOf(
+                        itemReq.getCantidad()
+                    )
+                )
+        );
+    }
+
+    pedido.setItems(nuevosItems);
+    pedido.setTotal(total);
+
+    pedidoRepository.save(pedido);
+
+    PedidoDTO dto = toDTO(pedido);
+
+    messagingTemplate.convertAndSend(
+        "/topic/pedidos/" +
+        pedido.getRestaurante().getId(),
+        dto
+    );
+
+    return dto;
 }
 
-        // Al confirmar (EN_PREPARACION) → descontar inventario automáticamente
-        if (nuevoEstado == EstadoPedido.EN_PREPARACION) {
-            for (PedidoItem item : pedido.getItems()) {
-                List<RecetaIngrediente> ingredientes =
-                    recetaIngredienteRepository.findByProductoId(item.getProducto().getId());
+    @Transactional
+public PedidoDTO cambiarEstado(UUID pedidoId, EstadoPedido nuevoEstado) {
 
-                for (RecetaIngrediente ingrediente : ingredientes) {
-                    BigDecimal cantidadTotal = ingrediente.getCantidad()
-                        .multiply(BigDecimal.valueOf(item.getCantidad()));
-                    inventarioService.descontarIngredientes(
-                        ingrediente.getInsumo().getId(),
-                        cantidadTotal,
-                        item.getId()
-                    );
-                }
+
+    Pedido pedido = pedidoRepository.findById(pedidoId)
+        .orElseThrow(() ->
+            new RuntimeException("Pedido no encontrado"));
+
+    EstadoPedido estadoActual = pedido.getEstado();
+
+boolean valido = switch (estadoActual) {
+
+    case NUEVO ->
+        nuevoEstado == EstadoPedido.EN_PREPARACION
+        || nuevoEstado == EstadoPedido.CANCELADO;
+
+    case EN_PREPARACION ->
+        nuevoEstado == EstadoPedido.LISTO
+        || nuevoEstado == EstadoPedido.CANCELADO;
+
+    case LISTO ->
+        nuevoEstado == EstadoPedido.ENTREGADO;
+
+    case ENTREGADO, CANCELADO ->
+        false;
+};
+
+if (!valido) {
+    throw new RuntimeException(
+        "Cambio de estado no permitido"
+    );
+}
+    
+    pedido.setEstado(nuevoEstado);
+
+    if (
+    nuevoEstado == EstadoPedido.ENTREGADO &&
+    !ventaRepository.existsByPedidoId(pedido.getId())
+) {
+
+    Venta venta = new Venta();
+
+    venta.setPedido(pedido);
+    venta.setRestaurante(pedido.getRestaurante());
+
+    venta.setSubtotal(pedido.getTotal());
+    venta.setDescuento(BigDecimal.ZERO);
+    venta.setTotal(pedido.getTotal());
+
+    venta.setMetodoPago(MetodoPago.EFECTIVO);
+
+    ventaRepository.save(venta);
+}
+
+    // Liberar mesa cuando termina o se cancela
+    if (
+        (nuevoEstado == EstadoPedido.ENTREGADO ||
+         nuevoEstado == EstadoPedido.CANCELADO)
+        &&
+        pedido.getMesa() != null
+    ) {
+
+        Mesa mesa = pedido.getMesa();
+
+        mesa.setEstado(EstadoMesa.DISPONIBLE);
+
+        mesaRepository.save(mesa);
+    }
+
+    // Descontar inventario al iniciar preparación
+    if (nuevoEstado == EstadoPedido.EN_PREPARACION) {
+
+        for (PedidoItem item : pedido.getItems()) {
+
+            List<RecetaIngrediente> ingredientes =
+                recetaIngredienteRepository.findByProductoId(
+                    item.getProducto().getId()
+                );
+
+            for (RecetaIngrediente ingrediente : ingredientes) {
+
+                BigDecimal cantidadTotal =
+                    ingrediente.getCantidad()
+                        .multiply(
+                            BigDecimal.valueOf(
+                                item.getCantidad()
+                            )
+                        );
+
+                inventarioService.descontarIngredientes(
+                    ingrediente.getInsumo().getId(),
+                    cantidadTotal,
+                    item.getId()
+                );
             }
         }
-
-        pedidoRepository.save(pedido);
-        PedidoDTO dto = toDTO(pedido);
-
-        // Notificar cambio de estado por WebSocket
-        messagingTemplate.convertAndSend(
-            "/topic/pedidos/" + pedido.getRestaurante().getId(), dto);
-
-        return dto;
     }
+
+    pedidoRepository.save(pedido);
+
+    PedidoDTO dto = toDTO(pedido);
+
+    messagingTemplate.convertAndSend(
+        "/topic/pedidos/" +
+        pedido.getRestaurante().getId(),
+        dto
+    );
+
+    return dto;
+}
 
     private PedidoDTO toDTO(Pedido p) {
         PedidoDTO dto = new PedidoDTO();
@@ -165,6 +342,20 @@ public class PedidoService {
         if (p.getItems() != null) {
             dto.setItems(p.getItems().stream().map(this::toItemDTO).collect(Collectors.toList()));
         }
+        if (p.getCliente() != null) {
+
+    dto.setClienteNombre(
+        p.getCliente().getNombre()
+    );
+
+    dto.setClienteTelefono(
+        p.getCliente().getTelefono()
+    );
+
+    dto.setClienteDireccion(
+        p.getCliente().getDireccion()
+    );
+}
 
         return dto;
     }

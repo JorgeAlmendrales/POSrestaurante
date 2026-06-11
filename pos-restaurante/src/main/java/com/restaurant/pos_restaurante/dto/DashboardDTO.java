@@ -15,4 +15,5 @@ public class DashboardDTO {
     private List<Map<String, Object>> ventasUltimos7Dias;
     private List<Map<String, Object>> topProductos;
     private List<InsumoDTO> alertasInventario;
+    private String recomendacionIA;
 }

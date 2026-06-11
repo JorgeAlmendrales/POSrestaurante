@@ -1,11 +1,16 @@
 package com.restaurant.pos_restaurante.service;
 
 import com.restaurant.pos_restaurante.dto.DashboardDTO;
+import com.restaurant.pos_restaurante.dto.RecomendacionIADTO;
+import com.restaurant.pos_restaurante.dto.InsumoRecomendadoDTO;
 import com.restaurant.pos_restaurante.dto.InsumoDTO;
 import com.restaurant.pos_restaurante.entity.PedidoItem;
 import com.restaurant.pos_restaurante.entity.Venta;
+import com.restaurant.pos_restaurante.entity.Producto;
+import com.restaurant.pos_restaurante.entity.RecetaIngrediente;
 import com.restaurant.pos_restaurante.enums.EstadoInsumo;
 import com.restaurant.pos_restaurante.repository.*;
+import com.restaurant.pos_restaurante.repository.RecetaIngredienteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
@@ -23,7 +28,82 @@ public class DashboardService {
     private final PedidoItemRepository pedidoItemRepository;
     private final InsumoRepository insumoRepository;
     private final InventarioService inventarioService;
+    private final RecetaIngredienteRepository recetaIngredienteRepository;
+    private final IAService iaService;
 
+    public RecomendacionIADTO getRecomendacionIA(UUID restauranteId) {
+
+    List<Producto> productos =
+        pedidoItemRepository.findProductosMasVendidos(restauranteId);
+
+    if (productos.isEmpty()) {
+        return null;
+    }
+
+    Producto producto = productos.get(0);
+
+    List<RecetaIngrediente> receta =
+        recetaIngredienteRepository.findByProductoId(
+            producto.getId()
+        );
+
+    RecomendacionIADTO dto =
+        new RecomendacionIADTO();
+
+    dto.setProducto(producto.getNombre());
+
+    Map<String, Object> respuestaIA =
+    iaService.obtenerRecomendacionProducto(
+        producto.getId().toString()
+    );
+
+    System.out.println("Respuesta IA:");
+System.out.println(respuestaIA);
+
+long demandaEstimada = 0L;
+
+if (
+    respuestaIA != null &&
+    !respuestaIA.containsKey("error")
+) {
+
+    demandaEstimada =
+        ((Number) respuestaIA.get("demanda"))
+            .longValue();
+}
+
+dto.setDemandaEstimada(demandaEstimada);
+
+    List<InsumoRecomendadoDTO> insumos =
+        new ArrayList<>();
+
+    for (RecetaIngrediente ingrediente : receta) {
+
+        InsumoRecomendadoDTO item =
+            new InsumoRecomendadoDTO();
+
+        item.setNombre(
+            ingrediente.getInsumo().getNombre()
+        );
+
+        item.setUnidad(
+            ingrediente.getUnidad()
+        );
+
+        item.setCantidad(
+            ingrediente.getCantidad()
+                .doubleValue() *
+            demandaEstimada
+        );
+
+        insumos.add(item);
+    }
+
+    dto.setInsumos(insumos);
+
+    return dto;
+}
+    
     public DashboardDTO getDashboard(UUID restauranteId) {
         DashboardDTO dto = new DashboardDTO();
 
