@@ -21,6 +21,7 @@ public class DashboardController {
         return ResponseEntity.ok(dashboardService.getDashboard(usuario.getRestaurante().getId()));
     }
 
+    //prueba
     @GetMapping("/recomendacion-ia")
 public ResponseEntity<RecomendacionIADTO> getRecomendacionIA(
         @AuthenticationPrincipal Usuario usuario) {
